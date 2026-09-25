@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import posts
+from app.routers import posts, users, categories
 
 settings = get_settings()
 
@@ -21,6 +21,8 @@ app = FastAPI(
 
 # Include Routers
 app.include_router(posts.router, prefix=settings.API_V1_PREFIX)
+app.include_router(users.router, prefix=settings.API_V1_PREFIX)
+app.include_router(categories.router, prefix=settings.API_V1_PREFIX)
 
 # CORS Middleware
 app.add_middleware(

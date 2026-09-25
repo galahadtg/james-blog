@@ -9,44 +9,42 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class PostBase(BaseModel):
-    """Shared fields for creating and reading posts."""
+class PostCreate(BaseModel):
+    """Schema for creating a new post."""
 
     title: str = Field(..., min_length=1, max_length=200, description="Post title")
     content: str = Field(..., min_length=1, description="Post body content")
-    published: bool = Field(default=False, description="Whether the post is published")
-
-
-class PostCreate(PostBase):
-    """Schema for creating a new post.
-
-    Inherits all fields from PostBase.
-    The 'id', 'created_at', and 'updated_at' are set by the server.
-    """
-    pass
+    excerpt: str | None = Field(default=None, max_length=500)
+    published: bool = Field(default=False, description="Publish immediately")
+    category_id: int | None = Field(default=None, description="Category ID")
 
 
 class PostUpdate(BaseModel):
-    """Schema for updating an existing post.
-
-    All fields are optional so clients can send partial updates (PATCH).
-    """
+    """Schema for updating an existing post (all fields optional for PATCH)."""
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
     content: str | None = Field(default=None, min_length=1)
-    published: bool | None = Field(default=None)
+    excerpt: str | None = Field(default=None, max_length=500)
+    category_id: int | None = None
 
 
-class PostResponse(PostBase):
+class PostResponse(BaseModel):
     """Schema for returning a post in API responses.
 
-    Includes server-generated fields like 'id' and timestamps.
+    Maps the database model fields to the API response.
+    `published` is derived from `status` for convenience.
     """
 
     id: int
+    title: str
+    slug: str
+    content: str
+    excerpt: str | None
+    status: str
+    published_at: datetime | None
+    author_id: int
+    category_id: int | None
     created_at: datetime
     updated_at: datetime
 
-    # This tells Pydantic to allow ORM-mode conversion
-    # (we'll use this later with SQLAlchemy models)
     model_config = {"from_attributes": True}
