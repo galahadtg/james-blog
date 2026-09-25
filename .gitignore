@@ -42,3 +42,7 @@ app/static/uploads/*
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Temp files
+commit_msg.txt
+test_*.py
