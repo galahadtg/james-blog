@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.routers import posts
 
 settings = get_settings()
 
@@ -17,6 +18,9 @@ app = FastAPI(
     docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
     redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
 )
+
+# Include Routers
+app.include_router(posts.router, prefix=settings.API_V1_PREFIX)
 
 # CORS Middleware
 app.add_middleware(
