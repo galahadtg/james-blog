@@ -1,0 +1,8 @@
+feat: configure Alembic for database migrations
+
+- Alembic configured to use app settings for DATABASE_URL
+- env.py imports all models for --autogenerate detection
+- Initial migration creates users, categories, posts tables
+- Verified: upgrade, downgrade, and re-upgrade all work
+
+Co-Authored-By: Claude Code <noreply@anthropic.com>
