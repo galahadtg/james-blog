@@ -5,7 +5,7 @@ Key dependencies:
   - require_active_user: Ensures the user account is active
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -80,3 +80,41 @@ async def require_active_user(
             detail="Account is deactivated.",
         )
     return current_user
+
+
+async def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Optional auth dependency — returns None instead of 401 if no token.
+
+    Checks both the Authorization header and the access_token cookie.
+    Use for pages that work for both guests and logged-in users.
+    """
+    # Try cookie first (browser-based auth)
+    token_str = request.cookies.get("access_token")
+
+    # Fall back to Authorization header
+    if not token_str:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token_str = auth_header[7:]
+
+    if not token_str:
+        return None
+
+    payload = decode_token(token_str)
+    if payload is None:
+        return None
+
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
+        return None
+
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return None
+
+    service = UserService(db)
+    return service.get(user_id)

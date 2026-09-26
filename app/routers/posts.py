@@ -6,12 +6,16 @@ Keeps the same API surface but with proper database persistence.
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.schemas.post import PostCreate, PostResponse, PostUpdate
 from app.services.post_service import PostService
+from app.core.authorization import require_permission, Perm
+from app.core.dependencies import get_current_user
+from app.models.user import User
+from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -69,26 +73,40 @@ async def get_post(post_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
     post_data: PostCreate,
-    author_id: int = Query(..., description="Author user ID"),
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.POST_CREATE)),
 ):
-    """Create a new post. Requires author_id."""
+    """Create a new post. Author is the current user."""
     service = PostService(db)
-    return service.create(
+    post = service.create(
         title=post_data.title,
         content=post_data.content,
         excerpt=post_data.excerpt,
         published=post_data.published,
-        author_id=author_id,
+        author_id=current_user.id,
         category_id=post_data.category_id,
     )
+
+    AuditLogService(db).log(
+        actor_id=current_user.id,
+        action="create",
+        resource="post",
+        resource_id=post.id,
+        detail=f"Created post '{post.title}'",
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return post
 
 
 @router.put("/{post_id}", response_model=PostResponse)
 async def update_post(
     post_id: int,
     post_data: PostUpdate,
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.POST_UPDATE)),
 ):
     """Update a post (partial update)."""
     service = PostService(db)
@@ -104,11 +122,26 @@ async def update_post(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {post_id} not found",
         )
+
+    AuditLogService(db).log(
+        actor_id=current_user.id,
+        action="update",
+        resource="post",
+        resource_id=post.id,
+        detail=f"Updated post '{post.title}'",
+        ip_address=request.client.host if request.client else None,
+    )
+
     return post
 
 
 @router.post("/{post_id}/publish", response_model=PostResponse)
-async def publish_post(post_id: int, db: Session = Depends(get_db)):
+async def publish_post(
+    post_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.POST_PUBLISH)),
+):
     """Publish a post (sets status to 'published' with timestamp)."""
     service = PostService(db)
     post = service.publish(post_id)
@@ -117,11 +150,26 @@ async def publish_post(post_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {post_id} not found",
         )
+
+    AuditLogService(db).log(
+        actor_id=current_user.id,
+        action="publish",
+        resource="post",
+        resource_id=post.id,
+        detail=f"Published post '{post.title}'",
+        ip_address=request.client.host if request.client else None,
+    )
+
     return post
 
 
 @router.post("/{post_id}/unpublish", response_model=PostResponse)
-async def unpublish_post(post_id: int, db: Session = Depends(get_db)):
+async def unpublish_post(
+    post_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.POST_PUBLISH)),
+):
     """Unpublish a post (reverts to draft)."""
     service = PostService(db)
     post = service.unpublish(post_id)
@@ -130,17 +178,43 @@ async def unpublish_post(post_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {post_id} not found",
         )
+
+    AuditLogService(db).log(
+        actor_id=current_user.id,
+        action="unpublish",
+        resource="post",
+        resource_id=post.id,
+        detail=f"Unpublished post '{post.title}'",
+        ip_address=request.client.host if request.client else None,
+    )
+
     return post
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_post(post_id: int, db: Session = Depends(get_db)):
+async def delete_post(
+    post_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.POST_DELETE)),
+):
     """Delete a post."""
     service = PostService(db)
-    deleted = service.delete(post_id)
-    if not deleted:
+    post = service.get(post_id)
+    if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id {post_id} not found",
         )
+
+    AuditLogService(db).log(
+        actor_id=current_user.id,
+        action="delete",
+        resource="post",
+        resource_id=post_id,
+        detail=f"Deleted post '{post.title}'",
+        ip_address=request.client.host if request.client else None,
+    )
+
+    service.delete(post_id)
     return

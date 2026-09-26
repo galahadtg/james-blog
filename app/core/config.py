@@ -28,9 +28,20 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["*"]
 
     # API
-    API_V1_PREFIX: str = "/api/v1"
-    PROJECT_NAME: str = "FastAPI Platform"
+    API_V1_PREFIX: str = "/api"
+    PROJECT_NAME: str = "James Blog"
     PROJECT_VERSION: str = "0.1.0"
+
+    # Uploads
+    UPLOAD_DIR: str = "uploads"
+    MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10 MB
+    ALLOWED_EXTENSIONS: list[str] = [
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
+        ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+        ".mp4", ".mov", ".avi",
+        ".mp3", ".wav",
+        ".zip", ".tar", ".gz",
+    ]
 
     model_config = SettingsConfigDict(
         env_file=".env",

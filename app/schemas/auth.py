@@ -49,5 +49,6 @@ class CurrentUserResponse(BaseModel):
     email: str
     is_active: bool
     created_at: datetime
+    permissions: list[str] = []
 
     model_config = {"from_attributes": True}

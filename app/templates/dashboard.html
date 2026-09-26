@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — James Blog{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+    <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+    <a href="/posts/create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New Post</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="display-6">{{ stats.post_count }}</h5>
+                <small class="text-muted">Posts</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="display-6">{{ stats.comment_count }}</h5>
+                <small class="text-muted">Comments</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="display-6">{{ stats.unread_notifications }}</h5>
+                <small class="text-muted">Unread Notifications</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="display-6">{{ stats.media_count }}</h5>
+                <small class="text-muted">Media Files</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-bell"></i> Recent Notifications</div>
+            <div class="card-body p-0">
+                {% if notifications %}
+                <ul class="list-group list-group-flush">
+                    {% for n in notifications %}
+                    <li class="list-group-item {% if not n.is_read %}fw-bold{% endif %}">
+                        <small class="text-muted">{{ n.created_at.strftime('%b %d, %H:%M') }}</small>
+                        <p class="mb-0">{{ n.message }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted p-3 mb-0">No notifications yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person-circle"></i> Profile</div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ current_user.username }}</p>
+                <p><strong>Email:</strong> {{ current_user.email }}</p>
+                <p><strong>Role:</strong>
+                    <span class="badge bg-info">{{ current_user.role.name if current_user.role else 'None' }}</span>
+                </p>
+                <p><strong>Permissions:</strong> {{ current_user.permissions|length }}</p>
+                <p><strong>Joined:</strong> {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

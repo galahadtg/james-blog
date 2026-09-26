@@ -12,6 +12,9 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.services.user_service import UserService
+from app.core.authorization import require_permission, Perm
+from app.core.dependencies import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -22,6 +25,7 @@ async def get_users(
     limit: int = 100,
     search: str | None = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.USER_READ)),
 ):
     """Get all users with optional search and pagination."""
     service = UserService(db)
@@ -31,7 +35,11 @@ async def get_users(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
+async def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.USER_READ)),
+):
     """Get a single user by ID."""
     service = UserService(db)
     user = service.get(user_id)
@@ -48,6 +56,7 @@ async def update_user(
     user_id: int,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.USER_UPDATE)),
 ):
     """Update a user (partial update)."""
     service = UserService(db)
@@ -76,7 +85,11 @@ async def update_user(
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
+async def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.USER_DELETE)),
+):
     """Deactivate a user."""
     service = UserService(db)
     user = service.get(user_id)

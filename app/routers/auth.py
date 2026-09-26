@@ -4,7 +4,7 @@ This router handles all authentication-related endpoints.
 After login, clients receive JWT tokens to authenticate subsequent requests.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -25,6 +25,8 @@ from app.schemas.auth import (
 )
 from app.models.user import User
 from app.services.user_service import UserService
+from app.services.role_service import RoleService
+from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -63,11 +65,19 @@ async def register(data: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=hash_password(data.password),
         is_active=True,
     )
+
+    # Assign default "user" role
+    role_service = RoleService(db)
+    default_role = role_service.get_by_name("user")
+    if default_role:
+        service.update(user.id, role_id=default_role.id)
+        user = service.get(user.id)  # Refresh with role
+
     return user
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: LoginRequest, db: Session = Depends(get_db)):
+async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     """Authenticate a user and return JWT tokens.
 
     The access token expires in 30 minutes (configurable).
@@ -100,6 +110,15 @@ async def login(data: LoginRequest, db: Session = Depends(get_db)):
     # Generate tokens
     access_token = create_access_token(data={"sub": user.id})
     refresh_token = create_refresh_token(data={"sub": user.id})
+
+    # Log the login
+    audit = AuditLogService(db)
+    audit.log(
+        actor_id=user.id,
+        action="login",
+        resource="auth",
+        ip_address=request.client.host if request.client else None,
+    )
 
     return TokenResponse(
         access_token=access_token,

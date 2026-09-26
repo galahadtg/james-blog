@@ -44,6 +44,7 @@ class Post(TimestampMixin, Base):
     # Relationships
     author = relationship("User", back_populates="posts")
     category = relationship("Category", back_populates="posts")
+    comments = relationship("Comment", back_populates="post", lazy="dynamic")
 
     def __repr__(self) -> str:
         return f"<Post {self.title!r}>"

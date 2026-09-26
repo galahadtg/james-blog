@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
 from app.services.category_service import CategoryService
+from app.core.authorization import require_permission, Perm
+from app.models.user import User
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -14,14 +16,14 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 async def get_categories(
     skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
-    """Get all categories with pagination."""
+    """Get all categories with pagination (public)."""
     service = CategoryService(db)
     return service.get_all(skip=skip, limit=limit)
 
 
 @router.get("/{category_id}", response_model=CategoryResponse)
 async def get_category(category_id: int, db: Session = Depends(get_db)):
-    """Get a single category by ID."""
+    """Get a single category by ID (public)."""
     service = CategoryService(db)
     category = service.get(category_id)
     if not category:
@@ -34,7 +36,9 @@ async def get_category(category_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(
-    category_data: CategoryCreate, db: Session = Depends(get_db)
+    category_data: CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.CATEGORY_CREATE)),
 ):
     """Create a new category."""
     service = CategoryService(db)
@@ -49,6 +53,7 @@ async def update_category(
     category_id: int,
     category_data: CategoryUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.CATEGORY_UPDATE)),
 ):
     """Update a category."""
     service = CategoryService(db)
@@ -66,7 +71,11 @@ async def update_category(
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_category(category_id: int, db: Session = Depends(get_db)):
+async def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission(Perm.CATEGORY_DELETE)),
+):
     """Delete a category."""
     service = CategoryService(db)
     deleted = service.delete(category_id)
