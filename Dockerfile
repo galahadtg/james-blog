@@ -1,4 +1,3 @@
-# Use multi-stage build for smaller production image
 FROM python:3.13-slim AS builder
 
 WORKDIR /app
@@ -32,8 +31,11 @@ COPY . .
 ENV PATH=/root/.local/bin:$PATH
 ENV PYTHONPATH=/app
 
+# Create upload directory
+RUN mkdir -p /app/uploads
+
 # Expose port
 EXPOSE 8000
 
 # Run with uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--log-level", "info"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--log-level", "info"]

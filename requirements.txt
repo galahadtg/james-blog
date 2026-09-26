@@ -15,8 +15,9 @@ bcrypt==4.2.1
 python-multipart==0.0.18
 
 # Validation
-pydantic==2.10.3
+pydantic==2.10.4
 pydantic-settings==2.7.0
+pydantic-core==2.27.1
 email-validator==2.2.0
 
 # Date/Time
