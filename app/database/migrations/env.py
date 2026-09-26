@@ -16,7 +16,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 # Add project root to sys.path so Alembic can find our app package
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Import our settings and models
 from app.core.config import get_settings
